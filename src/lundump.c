@@ -32,7 +32,6 @@
 typedef struct {
   lua_State *L;
   ZIO *Z;
-  Mbuffer *b;
   const char *name;
 } LoadState;
 
@@ -93,9 +92,14 @@ static TString *LoadString (LoadState *S) {
   if (size == 0)
     return NULL;
   else {
-    char *s = luaZ_openspace(S->L, S->b, --size);
+    TString *ts = NULL;
+    char *s = G(S->L)->buff;
+    if (--size > LUAI_MAXSHORTLEN)
+      s = getaddrstr(ts = luaS_newlstr(S->L, NULL, size));
     LoadVector(S, s, size);
-    return luaS_newlstr(S->L, s, size);
+    if (ts == NULL)
+      ts = luaS_newlstr(S->L, s, size);
+    return ts;
   }
 }
 
@@ -251,8 +255,7 @@ static void checkHeader (LoadState *S) {
 /*
 ** load precompiled chunk
 */
-LClosure *luaU_undump(lua_State *L, ZIO *Z, Mbuffer *buff,
-                      const char *name) {
+LClosure *luaU_undump(lua_State *L, ZIO *Z, const char *name) {
   LoadState S;
   LClosure *cl;
   if (*name == '@' || *name == '=')
@@ -263,7 +266,6 @@ LClosure *luaU_undump(lua_State *L, ZIO *Z, Mbuffer *buff,
     S.name = name;
   S.L = L;
   S.Z = Z;
-  S.b = buff;
   checkHeader(&S);
   cl = luaF_newLclosure(L, LoadByte(&S));
   setclLvalue(L, L->top, cl);

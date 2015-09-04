@@ -462,7 +462,8 @@ void luaV_concat (lua_State *L, int total) {
     else {
       /* at least two non-empty string values; get as many as possible */
       size_t tl = vslen(top - 1);
-      char *buffer;
+      TString *ts = NULL;
+      char *buffer = G(L)->buff;
       int i;
       /* collect total length */
       for (i = 1; i < total && tostring(L, top-i-1); i++) {
@@ -471,7 +472,8 @@ void luaV_concat (lua_State *L, int total) {
           luaG_runerror(L, "string length overflow");
         tl += l;
       }
-      buffer = luaZ_openspace(L, &G(L)->buff, tl);
+      if (tl > LUAI_MAXSHORTLEN)
+        buffer = getaddrstr(ts = luaS_newlstr(L, NULL, tl));
       tl = 0;
       n = i;
       do {  /* copy all strings to buffer */
@@ -479,7 +481,9 @@ void luaV_concat (lua_State *L, int total) {
         memcpy(buffer+tl, svalue(top-i), l * sizeof(char));
         tl += l;
       } while (--i > 0);
-      setsvalue2s(L, top-n, luaS_newlstr(L, buffer, tl));  /* create result */
+	  if (ts == NULL)
+        ts = luaS_newlstr(L, buffer, tl);
+      setsvalue2s(L, top-n, ts);  /* create result */
     }
     total -= n-1;  /* got 'n' strings to create 1 new */
     L->top -= n-1;  /* popped 'n' strings and pushed one */

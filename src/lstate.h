@@ -131,7 +131,7 @@ typedef struct global_State {
   GCObject *tobefnz;  /* list of userdata to be GC */
   GCObject *fixedgc;  /* list of objects not to be collected */
   struct lua_State *twups;  /* list of threads with open upvalues */
-  Mbuffer buff;  /* temporary buffer for string concatenation */
+  char buff[LUAI_MAXSHORTLEN];  /* temporary buffer for string concatenation */
   unsigned int gcfinnum;  /* number of finalizers to call in each GC step */
   int gcpause;  /* size of pause between successive GCs */
   int gcstepmul;  /* GC 'granularity' */
